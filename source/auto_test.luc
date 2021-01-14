@@ -1,0 +1,349 @@
+module auto_test (
+    input io_button[5],
+    input io_dip[2][8], 
+    input clk,
+    input rst,
+    output io_led[3][8]
+  ) {
+  
+  counter slowClock(#SIZE(1), #DIV(26), .clk(clk), .rst(rst));
+  edge_detector edge_detector(#RISE(1), #FALL(0), .clk(clk));
+  fsm state(.clk(slowClock.value)) = {START,ADD, SUB, SUB_NEG, AND, OR, XOR, A,
+                                     SHL, SHR, SRA, CMPEQ, CMPLT, CMPLE, MULT};
+  alu alu_unit;
+  sig a[16];
+  sig b[16];
+  sig alufn[6];
+  sig alu[16];
+  
+  always{
+  
+  edge_detector.in = slowClock.value;
+  
+  a = 16b0;
+  b = 16b0;
+  
+  io_led = 3x{{8h00}};
+    
+  alu_unit.alufn_signal = 6b0;
+    alufn = io_dip[0][7:2]; //assigning dip switches to alufn input
+    alu_unit.alufn_signal = alufn;   //connecting alufn to input of module alu
+    alu_unit.a = a;           //connecting a to input of module alu
+    alu_unit.b = b;           //connecting a to input of module alu
+    alu = alu_unit.alu;       //connecting alu to output of module alu
+  
+  case(state.q){
+      state.START:
+        if (io_button[1] == 1){
+          state.d = state.ADD;
+       }
+        
+     //test case for adder 
+      state.ADD:
+      alu_unit.alufn_signal = 6b0;
+      alu_unit.a= 16b0000101100000100; //a = 2820
+      alu_unit.b = 16b0000010010110001;  //b = 1201
+      
+      //output = 4021. In binary(signed) - 0000 1111 1011 0101
+        
+      alu = alu_unit.alu;
+      io_led[1] = alu[7:0]; //center 8 leds display first 8 bits of output
+      io_led[2] = alu[15:8];   //left 8 leds display next 8 bits of output
+      
+      io_led[0][7] = alu_unit.z;
+      io_led[0][6] = alu_unit.v;
+      io_led[0][5] = alu_unit.n;
+    
+      //counter.d = counter.q + 1;
+      if(io_button[1] ==1){     //press io_button to go to next state
+      state.d = state.SUB;
+      }
+          
+      
+    //test case for subtractor
+    
+    state.SUB:  
+    alu_unit.alufn_signal = 6b000001;
+    alu_unit.a = 16b0000101100000100;	//a = 2820
+    alu_unit.b = 16b0000010010110001;	//b = 1201
+    
+    //output = 1619, In binary(signed) - 0000 0110 0101 0011    
+        
+    alu = alu_unit.alu;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+    
+    
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){     
+      state.d = state.SUB_NEG;}
+          
+    
+    
+    //test case for subtractor
+
+      state.SUB_NEG:
+      alu_unit.alufn_signal = 6b000001;
+      alu_unit.a= 16b1111111111111011; //a = -5
+      alu_unit.b = 16b0000000000001000;  //b = 8
+      alu = alu_unit.alu;
+      io_led[1] = alu[7:0]; 
+      io_led[2] = alu[15:8]; 
+      
+      //output = 1111 1111 1111 0011
+        
+      io_led[0][7] = alu_unit.z;
+      io_led[0][6] = alu_unit.v;
+      io_led[0][5] = alu_unit.n;
+    
+      //counter.d = counter.q + 1;
+      if(io_button[1] ==1){     //io_button to go to next state
+      state.d = state.AND;
+      }
+     
+    
+    //test case for AND boolean operation
+    
+    state.AND:
+    alu_unit.alufn_signal = 6b011000;
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+    
+        
+   //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.OR;}
+          
+        
+     
+     
+    //test case for OR boolean operation
+    
+    state.OR:
+    alu_unit.alufn_signal = 6b011110;
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.XOR;}
+          
+          
+    
+    //test case for XOR boolean operation
+          
+    state.XOR:
+    alu_unit.alufn_signal = 6b010110;
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+        
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.A;}
+    
+    
+    
+    //test case for "A" boolean operation
+    
+    state.A:
+    alu_unit.alufn_signal = 6b011010;
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.SHL;
+      }
+          
+          
+          
+    
+    //test case for shift left
+          
+    state.SHL:
+    alu_unit.alufn_signal = 6b100000;		
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.SHR;
+      }
+          
+          
+          
+    //test case for shift right      
+          
+    state.SHR:
+    alu_unit.alufn_signal = 6b100001;		
+    alu_unit.a = 16b0110100001010111;	//input a
+    alu_unit.b = 16b1010110000001000;	//input b
+    alu = alu_unit.alu;
+    
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+    
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.SRA;
+      }
+    
+    
+    
+    //test case for arithmetic shift right
+          
+    state.SRA:
+    alu_unit.alufn_signal = 6b100011;	
+    alu_unit.a = 16b1100100001100001;	//input a
+    alu_unit.b = 16b0000000000001100;	//input b
+    alu = alu_unit.alu;
+    
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+        
+        
+   //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.CMPEQ;
+      }
+   
+    
+    //test case for comparing a==b
+    //output = true
+    
+    state.CMPEQ:
+    alu_unit.alufn_signal = 6b110011;		
+    alu_unit.a = 16b0000000000000101;	//input a
+    alu_unit.b = 16b0000000000000101;	//input b
+    alu = alu_unit.alu;
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.CMPLT;
+      }
+    
+ 
+    //test case for comparing a==b
+    //output = false
+    
+    state.CMPLT:
+    alu_unit.alufn_signal = 6b110011;	
+    alu_unit.a = 16b0000000000000101;	//input a
+    alu_unit.b = 16b0000000000000100;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.CMPLE;
+      }
+             
+          
+    //test case for comparing a<b
+    //output = true
+          
+    state.CMPLE:
+    alu_unit.alufn_signal = 6b110101;		
+    alu_unit.a = 16b0000000000001010;	//input a
+    alu_unit.b = 16b0000000000001111;	//input b
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.MULT;
+      }
+  
+    
+    //test case for multiply
+    // 3 * 2 = 6
+      
+    state.MULT:
+    alu_unit.alufn_signal = 6b000010;		
+    alu_unit.a = 16b0000000000000011;	
+    alu_unit.b = 16b0000000000000010;	
+    
+    alu = alu_unit.alu;
+    
+       
+    io_led[0][7] = alu_unit.z;
+    io_led[0][6] = alu_unit.v;
+    io_led[0][5] = alu_unit.n;
+    io_led[1] = alu[7:0]; 
+    io_led[2] = alu[15:8]; 
+   
+    //counter.d = counter.q + 1;
+    if(io_button[1] ==1){
+      state.d = state.START;
+      }
+      
+  }
+}
